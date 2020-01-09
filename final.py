@@ -26,8 +26,8 @@ def total_control():
             tools.deal_with_new_log(0, log_set, executor, monthly_income)
         elif choice_1 == '2':
             executor, monthly_income, debt_data = tools.get_data_from_history(1)
-            log_set = tools.input_event(1, executor)
-            tools.deal_with_new_log(1, log_set, executor, monthly_income, debt_data)
+            log_set = tools.input_event(1, executor, debtor_dict=debt_data)
+            tools.deal_with_new_log(1, log_set, executor, monthly_income, debtor_dict=debt_data)
         elif choice_1 == '3':
             tools.form_a_whole_summary()
         elif choice_1 == '4':

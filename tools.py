@@ -112,7 +112,9 @@ def get_happened_time():
 
 
 def get_debtor(dict_2):
-    useful_list = [dict_2[key][0] for key in dict_2]
+    useful_list = []
+    for key in dict_2:
+        useful_list.append(dict_2[key][0])
 
     info = ''
     for n in range(0, len(useful_list)):
@@ -120,6 +122,7 @@ def get_debtor(dict_2):
 
     print('请通过输入序号来选择货主\n'
           '如果列表中不存在您想要输入的姓名，请直接输入\n')
+    print(info)
 
     while True:
         th = input('请输入：')
@@ -136,7 +139,8 @@ def get_debtor(dict_2):
 def get_cash_amount():
     while True:
         print('请输入该项事务涉及的钱额\n'
-              '例：获得 100 元请输入 “100”，支出 80 元请输入 “-80”\n'
+              '例：在现金交易中，获得 100 元请输入 “100”，支出 80 元请输入 “-80”\n'
+              '如果是赊账/还钱，赊账 500 请输入“500”，还款 1000 请输入“-1000”'
               '输入其他类型的字符会导致报错并重来\n')
         amount_str = input('请输入：')
         try:
@@ -188,14 +192,15 @@ def input_event(event_type, executor_list, debtor_dict=None):
     while True:
         event = [get_nonce(), get_happened_time(), input('请输入事项描述，按回车结束：')]
         # 先获取流水号。获得的数据是 int 也没关系，写入时会自动转为 str
+        # note：有关系，后文在使用类型作判断时用的数据格式是 str，为了重用，这里也要用 str
         # 然后获取发生年月
         # 然后输入事项
         # 然后加入类型、货主
         if event_type == 0:
-            event.append(0)
+            event.append('0')
             event.append('')
         elif event_type == 1:
-            event.append(1)
+            event.append('1')
             event.append(get_debtor(debtor_dict))
         # 输入金额
         event.append(get_cash_amount())
@@ -231,6 +236,11 @@ def deal_with_new_log(type, loglist_list, excutor_list, income_dict, debtor_dict
     if debtor_dict is None:
         debtor_dict = {}
 
+    print(loglist_list)
+    print(excutor_list)
+    print(income_dict)
+    print(debtor_dict)
+
     for event in loglist_list:
         # 检验是否需要增加月度收入表中的条目
         if income_dict.get(event[1]) is None:
@@ -245,13 +255,12 @@ def deal_with_new_log(type, loglist_list, excutor_list, income_dict, debtor_dict
 
     if type == 1:
         debtor_name = []
-        for ele in debtor_name:
-            debtor_name.append(ele[0])
+        for ele in debtor_dict:
+            debtor_name.append(debtor_dict[ele][0])
         for event in loglist_list:
             if event[3] == '1':
                 if event[4] not in debtor_name:
                     debtor_dict[event[4]] = [event[4], 0]
-        print(debtor_dict)
 
     # 以上的都是准备工作，保证数据对齐
     # 正式开始处理
@@ -263,13 +272,15 @@ def deal_with_new_log(type, loglist_list, excutor_list, income_dict, debtor_dict
             if int(event[5]) < 0:
                 change_local = get_location(event[6], excutor_list) + 1
                 income_dict[event[1]][change_local] = int(income_dict[event[1]][change_local]) - int(event[5])
+    print(income_dict)
 
     if type == 1:
         for event in loglist_list:
             if event[3] == '1':
-                debtor_dict[event[4]][1] = int(income_dict[event[4]][1]) + int(event[5])
-            elif event[3] == '0':
-                pass
+                print(debtor_dict)
+                print(int(event[5]))
+                debtor_dict[event[4]][1] = int(debtor_dict[event[4]][1]) + int(event[5])
+    print(debtor_dict)
 
     # 已更新收入状况和债务统计
     # 为求俭省（避免进一步传出传入数据），直接在此函数内完成剩下的文件写入工作
@@ -277,12 +288,13 @@ def deal_with_new_log(type, loglist_list, excutor_list, income_dict, debtor_dict
     monthly_income_list[0].insert(0, '发生年月')
     for key in income_dict:
         monthly_income_list.append(income_dict[key])
-    rewrite_whole_csv('月度收支表.csv', monthly_income_list, 2)
+    rewrite_whole_csv('月度收支表.csv', monthly_income_list, mode_used=2)
 
-    debt_list = []
-    for key in debtor_dict:
-        debt_list.append(debtor_dict[key])
-    rewrite_whole_csv('应收帐统计.csv', debt_list, 2)
+    if type == 1:
+        debt_list = []
+        for key in debtor_dict:
+            debt_list.append(debtor_dict[key])
+        rewrite_whole_csv('应收帐统计.csv', debt_list, mode_used=2)
 
 
 def read_from_raw():
@@ -351,4 +363,4 @@ def check():
 
 
 if __name__ == '__main__':
-    initialize_ledger()
+    form_a_whole_summary()
